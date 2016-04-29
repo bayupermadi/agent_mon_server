@@ -5,11 +5,13 @@ import (
     "errors"
 	"fmt"
 	"net"
+	"os"
+	"encoding/json"
 
     linuxproc "github.com/c9s/goprocinfo/linux"
 )
 
-func cpu_usage(){
+func cpu_usage() uint64{
 	stat, err := linuxproc.ReadStat("/proc/stat")
 	if err != nil {
 	    log.Fatal("stat read fail")
@@ -22,11 +24,12 @@ func cpu_usage(){
 	d := c*100/a
 
 
-   	fmt.Println("cpu_usage : ",d,"%")
+   	//fmt.Println(d)
+   	return d
 
 }
 
-func mem_usage(){
+func mem_usage() uint64{
 	MemInfo, err := linuxproc.ReadMemInfo("/proc/meminfo")
 	if err != nil {
 	    log.Fatal("meminfo read fail")
@@ -37,7 +40,9 @@ func mem_usage(){
 
 	usage_util := memactive*100/memtotal
 
-	fmt.Println("mem_usage : ",usage_util,"%")
+	//fmt.Println(usage_util)
+
+	return usage_util
 }
 
 func externalIP() (string, error) {
@@ -78,12 +83,42 @@ func externalIP() (string, error) {
 }
 
 func main() {
-	cpu_usage()
-	mem_usage()
+	//cpu_usage()
+	//mem_usage()
 
 	ip, err := externalIP()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("ip_address : ", ip)
+	//fmt.Println("ip_address : ", ip)
+
+
+    hostname, err := os.Hostname()
+
+    if err != nil {
+        panic(err)
+    }
+
+    cpu_usages := cpu_usage()
+    mem_usages := mem_usage()
+
+    //fmt.Println("hostname : ", hostname)
+
+    type AMonS struct {
+		Hoetname	string
+		IP 			string	
+		MemUsage 	uint64
+		CPUUsage 	uint64
+	}
+	mons := AMonS{
+		Hoetname: hostname,
+		IP:   ip,
+		MemUsage: mem_usages,
+		CPUUsage: cpu_usages,
+	}
+	b, err := json.MarshalIndent(mons, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	os.Stdout.Write(b)
 }
